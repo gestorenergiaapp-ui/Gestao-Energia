@@ -1,0 +1,6 @@
+{
+  "name": "Gestor de Despesas de Energia",
+  "description": "Um dashboard para visualização e gerenciamento de despesas de energia, permitindo análises por unidade, competência e tipo de despesa.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
