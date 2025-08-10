@@ -9,14 +9,25 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration - more explicit to prevent fetch errors
+// --- Robust CORS Configuration ---
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN, // In production, restrict this to your frontend's domain e.g. 'https://myapp.com'
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests) or from whitelisted origins
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // Allow cookies to be sent
     preflightContinue: false,
     optionsSuccessStatus: 204
 };
 app.use(cors(corsOptions));
+
 
 // Simple logging middleware to see all incoming requests
 app.use((req, res, next) => {

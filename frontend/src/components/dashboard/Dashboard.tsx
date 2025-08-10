@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
+import React, { useState, useMemo, useCallback, useContext } from 'react';
 import { api } from '../../services/api';
 import type { Unit, Competence, BarChartData, ChartData, Expense, Estimate, UnitDetailData, Contract, GroupedExpense } from '../../types';
 import { MarketType, ExpenseType } from '../../types';
@@ -15,6 +15,8 @@ import UnitDetailModal from './UnitDetailModal';
 import MonthlyClosingModal from './MonthlyClosingModal';
 import BreakdownModal from './BreakdownModal';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useDashboardData } from '../../hooks/useDashboardData';
+import { useDashboardModals } from '../../hooks/useDashboardModals';
 import { 
     PlusIcon, 
     ArchiveBoxIcon, 
@@ -44,55 +46,13 @@ const ITEMS_PER_PAGE = 5;
 
 const Dashboard: React.FC = () => {
     const { user } = useContext(AuthContext);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [contracts, setContracts] = useState<Contract[]>([]);
-    const [competences, setCompetences] = useState<Competence[]>([]);
-    const [estimates, setEstimates] = useState<Estimate[]>([]);
     
+    // --- Filters State ---
     const [selectedContract, setSelectedContract] = useState<string>('');
     const [selectedMarket, setSelectedMarket] = useState<MarketType>(MarketType.LIVRE);
     const [selectedUnit, setSelectedUnit] = useState<string>('');
     const [selectedCompetence, setSelectedCompetence] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(true);
-    const [reloading, setReloading] = useState<boolean>(false);
-
-    const [kpis, setKpis] = useState<{ totalDespesas: number; economia: number }>({ totalDespesas: 0, economia: 0 });
-    const [pieChartData, setPieChartData] = useState<ChartData[]>([]);
-    const [barChartData, setBarChartData] = useState<BarChartData[]>([]);
-    const [unitChartData, setUnitChartData] = useState<ChartData[]>([]);
-    const [marketChartData, setMarketChartData] = useState<BarChartData[]>([]);
-    const [opportunitiesChartData, setOpportunitiesChartData] = useState<ChartData[]>([]);
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [totalsByGroup, setTotalsByGroup] = useState<Record<string, {real: number, estimado: number}>>({});
-    
     const [expensesPage, setExpensesPage] = useState(1);
-
-
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [isFormDirty, setIsFormDirty] = useState(false);
-    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-
-    const [isUnitDetailModalOpen, setIsUnitDetailModalOpen] = useState(false);
-    const [selectedUnitDetails, setSelectedUnitDetails] = useState<UnitDetailData | null>(null);
-    
-    const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
-
-    const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
-    const [breakdownModalProps, setBreakdownModalProps] = useState<{
-        title: string;
-        data: { name: string; value: number }[];
-        dataLabel?: string;
-        valueLabel?: string;
-        totalValue?: number;
-    } | null>(null);
-
-    const [isComparisonDetailModalOpen, setIsComparisonDetailModalOpen] = useState(false);
-    const [comparisonDetailTitle, setComparisonDetailTitle] = useState('');
-    const [comparisonUnitDetails, setComparisonUnitDetails] = useState<any[]>([]);
-
-    const formatCurrency = (value: number) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
 
     const filters = useMemo(() => ({
         contratoId: selectedContract,
@@ -101,6 +61,40 @@ const Dashboard: React.FC = () => {
         competenciaId: selectedCompetence,
     }), [selectedContract, selectedMarket, selectedUnit, selectedCompetence]);
 
+    // --- Data Fetching Hook ---
+    const {
+        units,
+        contracts,
+        competences,
+        estimates,
+        expenses,
+        loading,
+        reloading,
+        kpis,
+        pieChartData,
+        barChartData,
+        unitChartData,
+        marketChartData,
+        opportunitiesChartData,
+        totalsByGroup,
+        loadDashboardData,
+        reloadCompetences,
+    } = useDashboardData(filters, selectedCompetence);
+    
+    // --- Modals State Hook ---
+    const {
+        isFormOpen, editingExpense, handleOpenForm, handleCloseForm, closeFormModal, setIsFormDirty,
+        isUnitDetailModalOpen, selectedUnitDetails, openUnitDetailModal, closeUnitDetailModal,
+        isClosingModalOpen, openClosingModal, closeClosingModal,
+        isBreakdownModalOpen, breakdownModalProps, openBreakdownModal, closeBreakdownModal,
+        isComparisonDetailModalOpen, comparisonDetailTitle, comparisonUnitDetails, openComparisonDetailModal, closeComparisonDetailModal,
+    } = useDashboardModals();
+
+    const formatCurrency = (value: number) => {
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // --- Derived State and Memoized Calculations ---
     const filteredUnits = useMemo(() => {
         return units
             .filter(u => !selectedContract || u.contratoId === selectedContract)
@@ -108,20 +102,14 @@ const Dashboard: React.FC = () => {
     }, [units, selectedContract, selectedMarket]);
 
     const noUnitsMatchMarket = useMemo(() => {
-        // This warning is only relevant if a contract is explicitly selected
         if (!selectedContract) return false;
-
-        // Check if there are any units for the selected contract
         const hasAnyUnitsForContract = units.some(u => u.contratoId === selectedContract);
         if (!hasAnyUnitsForContract) return false;
-
-        // Check if there are units for the selected contract AND the selected market type
         const hasMatchingUnits = units.some(u => u.contratoId === selectedContract && u.marketType === selectedMarket);
-        
-        // Show the warning if the contract has units, but none match the current market type filter
         return hasAnyUnitsForContract && !hasMatchingUnits;
     }, [units, selectedContract, selectedMarket]);
-    
+
+    // --- Handlers ---
     const handleContractChange = (contractId: string) => {
         setSelectedContract(contractId);
         setSelectedUnit('');
@@ -146,90 +134,11 @@ const Dashboard: React.FC = () => {
         setExpensesPage(1);
     }
 
-    const loadInitialMetadata = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [unitsData, competencesData, contractsData] = await Promise.all([
-                api.getAllUnits(),
-                api.getCompetences(),
-                api.getContracts()
-            ]);
-            setUnits(unitsData);
-            setCompetences(competencesData.sort((a,b) => b.ano - a.ano || b.mes - a.mes));
-            setContracts(contractsData);
-        } catch (error) {
-            toast.error("Falha ao carregar dados iniciais.");
-            console.error("Failed to load initial metadata", error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    const loadDashboardData = useCallback(async () => {
-        setReloading(true);
-        try {
-            const [dashboardData, expensesData, estimatesData] = await Promise.all([
-                api.getDashboardData(filters),
-                api.getExpenses(filters),
-                selectedCompetence ? api.getEstimates(selectedCompetence) : Promise.resolve([])
-            ]);
-
-            setKpis(dashboardData.kpis || { totalDespesas: 0, economia: 0 });
-            const charts = dashboardData.charts || {};
-            setPieChartData(charts.despesasPorTipo || []);
-            setBarChartData(charts.monthlyExpenses || []);
-            setUnitChartData(charts.despesasPorUnidade || []);
-            setMarketChartData(charts.mercadoComparison || []);
-            setOpportunitiesChartData(charts.oportunidadesMelhora || []);
-            setTotalsByGroup(dashboardData.rawData?.totalsByGroup || {});
-            
-            setExpenses(expensesData.sort((a,b) => new Date(b.vencimento).getTime() - new Date(a.vencimento).getTime()));
-            setEstimates(estimatesData);
-        } catch (error) {
-            toast.error("Falha ao carregar dados do dashboard.");
-            console.error("Failed to load dashboard data", error);
-        } finally {
-            setReloading(false);
-        }
-    }, [filters, selectedCompetence]);
-    
-    useEffect(() => {
-       loadInitialMetadata();
-    }, [loadInitialMetadata]);
-
-    useEffect(() => {
-        if (!loading) { // Run only after initial metadata is loaded
-            loadDashboardData();
-        }
-    }, [loading, loadDashboardData]);
-
-    const handleOpenForm = (expense: Expense | null = null) => {
-        setEditingExpense(expense);
-        setIsFormDirty(false);
-        setIsFormOpen(true);
-    };
-
-    const handleCloseForm = () => {
-        if (isFormDirty) {
-            if (window.confirm("Você tem alterações não salvas. Deseja sair mesmo assim?")) {
-                setIsFormOpen(false);
-                setEditingExpense(null);
-                setIsFormDirty(false);
-            }
-        } else {
-            setIsFormOpen(false);
-            setEditingExpense(null);
-        }
-    };
-
     const handleSaveSuccess = () => {
-        setIsFormOpen(false);
+        closeFormModal();
         toast.success(`Lançamento ${editingExpense ? 'atualizado' : 'criado'} com sucesso!`);
-        setEditingExpense(null);
-        setIsFormDirty(false);
-        loadDashboardData(); // Reload data after saving
-        // Also reload competences in case a new one was created implicitly
-        api.getCompetences().then(data => setCompetences(data.sort((a,b) => b.ano - a.ano || b.mes - a.mes)));
+        loadDashboardData();
+        reloadCompetences();
     };
 
     const handleDelete = async (expenseId: string) => {
@@ -252,14 +161,7 @@ const Dashboard: React.FC = () => {
 
     const handleUnitChartClick = async (payload: any) => {
         if (payload && payload.name) {
-            try {
-                const detailData = await api.getUnitDetailData(payload.name, filters);
-                setSelectedUnitDetails(detailData);
-                setIsUnitDetailModalOpen(true);
-            } catch (error) {
-                toast.error(`Não foi possível carregar os detalhes para ${payload.name}.`);
-                console.error("Failed to get unit details", error);
-            }
+            openUnitDetailModal(payload.name, filters);
         }
     };
 
@@ -289,14 +191,13 @@ const Dashboard: React.FC = () => {
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
 
-        setBreakdownModalProps({
+        openBreakdownModal({
             title: `Detalhes: ${penaltyType}`,
             data: dataForModal,
             dataLabel: 'Unidade',
             valueLabel: 'Valor da Multa',
             totalValue: totalValue,
         });
-        setIsBreakdownModalOpen(true);
     };
 
     const expenseBelongsToCompetence = (expense: Expense, competence: Competence) => {
@@ -332,14 +233,13 @@ const Dashboard: React.FC = () => {
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
         
-        setBreakdownModalProps({
+        openBreakdownModal({
             title: `Composição de Custo - ${monthName}`,
             data: dataForModal,
             dataLabel: 'Unidade',
             valueLabel: 'Custo Total',
             totalValue: totalValue,
         });
-        setIsBreakdownModalOpen(true);
     };
 
      const handleMarketChartClick = (data: any) => {
@@ -367,9 +267,7 @@ const Dashboard: React.FC = () => {
             .filter(item => item['Custo Estimado'] > 0)
             .sort((a, b) => (a.ano ?? 0) - (b.ano ?? 0) || (a.mes ?? 0) - (b.mes ?? 0));
 
-        setComparisonUnitDetails(detailsForUnit);
-        setComparisonDetailTitle(`Detalhe por Competência: ${unitName}`);
-        setIsComparisonDetailModalOpen(true);
+        openComparisonDetailModal(`Detalhe por Competência: ${unitName}`, detailsForUnit);
     };
     
     const getEffectiveCompetenceId = (expense: Expense, allCompetences: Competence[]): string => {
@@ -485,7 +383,7 @@ const Dashboard: React.FC = () => {
                                </button>
                                {selectedCompetence && (
                                    <button 
-                                       onClick={() => setIsClosingModalOpen(true)} 
+                                       onClick={openClosingModal} 
                                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                                    >
                                       <ArchiveBoxIcon className="h-5 w-5" />
@@ -653,14 +551,14 @@ const Dashboard: React.FC = () => {
 
             <UnitDetailModal
                 isOpen={isUnitDetailModalOpen}
-                onClose={() => setIsUnitDetailModalOpen(false)}
+                onClose={closeUnitDetailModal}
                 data={selectedUnitDetails}
             />
 
             {selectedCompetence && (
               <MonthlyClosingModal
                   isOpen={isClosingModalOpen}
-                  onClose={() => setIsClosingModalOpen(false)}
+                  onClose={closeClosingModal}
                   competenceId={selectedCompetence}
                   competences={competences}
                   units={units.filter(u => u.marketType === MarketType.LIVRE && (!selectedContract || u.contratoId === selectedContract))}
@@ -674,7 +572,7 @@ const Dashboard: React.FC = () => {
             {breakdownModalProps && (
                  <BreakdownModal
                     isOpen={isBreakdownModalOpen}
-                    onClose={() => setIsBreakdownModalOpen(false)}
+                    onClose={closeBreakdownModal}
                     title={breakdownModalProps.title}
                     data={breakdownModalProps.data}
                     dataLabel={breakdownModalProps.dataLabel}
@@ -685,7 +583,7 @@ const Dashboard: React.FC = () => {
 
             <Modal
                 isOpen={isComparisonDetailModalOpen}
-                onClose={() => setIsComparisonDetailModalOpen(false)}
+                onClose={closeComparisonDetailModal}
                 title={comparisonDetailTitle}
             >
                 <div className="space-y-2 max-h-96 overflow-y-auto">

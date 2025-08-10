@@ -89,6 +89,25 @@ const App: React.FC = () => {
     updateUser,
   }), [user, login, logout, updateUser]);
 
+  if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-red-900 text-white p-8">
+        <div className="text-center bg-red-800 p-6 rounded-lg shadow-lg border border-red-600 max-w-2xl">
+          <h1 className="text-3xl font-bold text-yellow-300 mb-4">Erro de Configuração</h1>
+          <p className="text-lg">
+            A variável de ambiente <code className="bg-red-700 px-2 py-1 rounded font-mono">VITE_API_BASE_URL</code> não está definida.
+          </p>
+          <p className="mt-4 text-red-200">
+            Para que a aplicação funcione em produção, você deve configurar esta variável no seu serviço de hospedagem (ex: Netlify, Vercel) com a URL completa da sua API backend.
+          </p>
+           <p className="mt-2 text-xs text-red-300">
+            Exemplo: <code className="bg-red-700 px-2 py-1 rounded font-mono">https://seu-backend.vercel.app/api</code>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
