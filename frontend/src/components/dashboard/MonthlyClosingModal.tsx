@@ -74,7 +74,7 @@ const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
             setInitialEstimatesState(estimates); // Update the initial state to the new saved state
             setIsDirty(false);
             onSaveSuccess(); // Refresh dashboard data
-        } catch (err: unknown) {
+        } catch (err: any) {
             const message = err instanceof Error ? err.message : 'Falha ao salvar estimativas.';
             toast.error(message);
         } finally {
@@ -94,8 +94,11 @@ const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
             const reportPromise = api.generateAndSendReport(competenceId, emailList, contratoId);
             await toast.promise(reportPromise, {
                 loading: 'Gerando e enviando relatório...',
-                success: (data) => data.message,
-                error: (err: any) => err?.message || 'Ocorreu um erro ao gerar e enviar o relatório.'
+                success: (data: { message: string }) => data.message,
+                error: (err: any) => {
+                    if (err instanceof Error) return err.message;
+                    return 'Ocorreu um erro ao gerar e enviar o relatório.';
+                },
             });
         } catch (err: unknown) {
             console.error("Error sending report:", err);

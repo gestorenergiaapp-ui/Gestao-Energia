@@ -352,13 +352,14 @@ const Dashboard: React.FC = () => {
         const detailsForUnit = Object.entries(totalsByGroup)
             .filter(([key]) => key.startsWith(unit._id))
             .map(([key, value]) => {
+                const typedValue = value as { real: number, estimado: number };
                 const competenceId = key.split('-')[1];
                 const comp = competences.find(c => c._id === competenceId);
                 const compName = comp ? `${String(comp.mes).padStart(2,'0')}/${comp.ano}` : 'N/A';
                 return {
                     name: compName,
-                    'Custo Real': value.real,
-                    'Custo Estimado': value.estimado,
+                    'Custo Real': typedValue.real,
+                    'Custo Estimado': typedValue.estimado,
                     ano: comp?.ano,
                     mes: comp?.mes,
                 };

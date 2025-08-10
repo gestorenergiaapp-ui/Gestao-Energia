@@ -1,6 +1,6 @@
 import type { User, Unit, Competence, Expense, ExpensePostData, Estimate, UnitDetailData, Contract, UnitFormData, UserUpdateData, ContractFormData, CompetenceFormData, PaginatedAuditLogs } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/$/, '');
 const SESSION_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
 const handleResponse = async (response: Response) => {
@@ -34,7 +34,7 @@ const authenticatedGet = async (endpoint: string, params: Record<string, string>
     // Remove empty/null/undefined params
     Object.keys(finalParams).forEach(key => (finalParams[key] == null || finalParams[key] === '') && delete finalParams[key]);
     const searchParams = new URLSearchParams(finalParams);
-    const response = await fetch(`${API_BASE_URL}${endpoint}?${searchParams.toString()}`);
+    const response = await fetch(`${API_BASE_URL}/${endpoint}?${searchParams.toString()}`);
     return handleResponse(response);
 };
 
@@ -43,14 +43,15 @@ const authenticatedRequest = async (method: 'POST' | 'PUT' | 'DELETE', endpoint:
     const userId = getUserId();
     const headers = { 'Content-Type': 'application/json' };
     let finalBody = body ? JSON.stringify({ ...body, userId }) : undefined;
-    let finalEndpoint = endpoint;
+    
+    let url = `${API_BASE_URL}/${endpoint}`;
 
     if (method === 'DELETE') {
         const params = new URLSearchParams({ ...(query || {}), ...(userId && { userId }) } as Record<string, string>);
-        finalEndpoint = `${endpoint}?${params.toString()}`;
+        url = `${url}?${params.toString()}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${finalEndpoint}`, { method, headers, body: finalBody });
+    const response = await fetch(url, { method, headers, body: finalBody });
     return handleResponse(response);
 };
 
@@ -112,35 +113,35 @@ export const api = {
   },
 
   // --- Metadata ---
-  getContracts: async (): Promise<Contract[]> => authenticatedGet('/contracts'),
-  getAllUnits: async (): Promise<Unit[]> => authenticatedGet('/units'),
-  getCompetences: async (): Promise<Competence[]> => authenticatedGet('/competences'),
-  getEstimates: async (competenciaId: string): Promise<Estimate[]> => authenticatedGet('/estimates', { competenciaId }),
+  getContracts: async (): Promise<Contract[]> => authenticatedGet('contracts'),
+  getAllUnits: async (): Promise<Unit[]> => authenticatedGet('units'),
+  getCompetences: async (): Promise<Competence[]> => authenticatedGet('competences'),
+  getEstimates: async (competenciaId: string): Promise<Estimate[]> => authenticatedGet('estimates', { competenciaId }),
   
   saveEstimates: async (competenciaId: string, estimates: { unidadeId: string, valor: number }[]): Promise<{ message: string }> => 
-    authenticatedRequest('POST', '/estimates', { competenciaId, estimates }),
+    authenticatedRequest('POST', 'estimates', { competenciaId, estimates }),
   
   generateAndSendReport: async(competenciaId: string, emails: string[], contratoId: string): Promise<{ message: string }> =>
-    authenticatedRequest('POST', '/reports/generate', { competenciaId, emails, contratoId }),
+    authenticatedRequest('POST', 'reports/generate', { competenciaId, emails, contratoId }),
 
   // --- Expenses ---
   getExpenses: async (filters: { contratoId?: string, marketType?: string, unidadeId?: string; competenciaId?: string }): Promise<Expense[]> =>
-    authenticatedGet('/expenses', filters as Record<string, string>),
+    authenticatedGet('expenses', filters as Record<string, string>),
 
   createExpense: async (data: ExpensePostData): Promise<Expense> =>
-    authenticatedRequest('POST', '/expenses', data),
+    authenticatedRequest('POST', 'expenses', data),
 
   updateExpense: async (id: string, data: Partial<ExpensePostData>): Promise<Expense> =>
-    authenticatedRequest('PUT', `/expenses/${id}`, data),
+    authenticatedRequest('PUT', `expenses/${id}`, data),
 
   deleteExpense: async (id: string): Promise<void> =>
-    authenticatedRequest('DELETE', `/expenses/${id}`),
+    authenticatedRequest('DELETE', `expenses/${id}`),
 
   // --- Settings Screen ---
-  getUsers: async (): Promise<User[]> => authenticatedGet('/users'),
+  getUsers: async (): Promise<User[]> => authenticatedGet('users'),
 
   updateUser: async (id: string, data: UserUpdateData): Promise<User> => {
-     const updatedUser = await authenticatedRequest('PUT', `/users/${id}`, data);
+     const updatedUser = await authenticatedRequest('PUT', `users/${id}`, data);
      const currentUserJson = sessionStorage.getItem('loggedInUser');
      if (currentUserJson) {
         const currentUser = JSON.parse(currentUserJson);
@@ -152,48 +153,48 @@ export const api = {
   },
   
   updateUserStatus: async (id: string, status: User['status']): Promise<void> =>
-     authenticatedRequest('PUT', `/users/${id}/status`, { status }),
+     authenticatedRequest('PUT', `users/${id}/status`, { status }),
 
   updateUserRole: async (id: string, role: User['role']): Promise<void> =>
-    authenticatedRequest('PUT', `/users/${id}/role`, { role }),
+    authenticatedRequest('PUT', `users/${id}/role`, { role }),
   
   updateUserUnits: async (id: string, unitIds: string[]): Promise<void> =>
-    authenticatedRequest('PUT', `/users/${id}/units`, { unitIds }),
+    authenticatedRequest('PUT', `users/${id}/units`, { unitIds }),
 
   deleteUser: async (id: string): Promise<void> =>
-    authenticatedRequest('DELETE', `/users/${id}`),
+    authenticatedRequest('DELETE', `users/${id}`),
 
   createUnit: async (data: UnitFormData): Promise<Unit> =>
-    authenticatedRequest('POST', '/units', data),
+    authenticatedRequest('POST', 'units', data),
 
   updateUnit: async (id: string, data: Partial<UnitFormData>): Promise<Unit> =>
-     authenticatedRequest('PUT', `/units/${id}`, data),
+     authenticatedRequest('PUT', `units/${id}`, data),
 
   deleteUnit: async (id: string): Promise<void> =>
-    authenticatedRequest('DELETE', `/units/${id}`),
+    authenticatedRequest('DELETE', `units/${id}`),
 
   createContract: async (data: ContractFormData): Promise<Contract> =>
-      authenticatedRequest('POST', '/contracts', data),
+      authenticatedRequest('POST', 'contracts', data),
 
   updateContract: async (id: string, data: Partial<ContractFormData>): Promise<Contract> =>
-       authenticatedRequest('PUT', `/contracts/${id}`, data),
+       authenticatedRequest('PUT', `contracts/${id}`, data),
 
   deleteContract: async (id: string): Promise<void> =>
-      authenticatedRequest('DELETE', `/contracts/${id}`),
+      authenticatedRequest('DELETE', `contracts/${id}`),
     
   createCompetence: async (data: CompetenceFormData): Promise<Competence> =>
-      authenticatedRequest('POST', '/competences', data),
+      authenticatedRequest('POST', 'competences', data),
 
   deleteCompetence: async (id: string): Promise<void> =>
-      authenticatedRequest('DELETE', `/competences/${id}`),
+      authenticatedRequest('DELETE', `competences/${id}`),
     
   getAuditLogs: async (params: { page?: number, limit?: number }): Promise<PaginatedAuditLogs> =>
-    authenticatedGet('/audit-logs', params as Record<string, string>),
+    authenticatedGet('audit-logs', params as Record<string, string>),
 
   // --- Analysis Endpoints ---
   getDashboardData: async (filters: { contratoId?: string, marketType?: string, unidadeId?: string; competenciaId?: string }) =>
-    authenticatedGet('/dashboard', filters as Record<string, string>),
+    authenticatedGet('dashboard', filters as Record<string, string>),
   
   getUnitDetailData: async (unitName: string, filters: { contratoId?: string, marketType?: string; competenciaId?: string; }): Promise<UnitDetailData> =>
-    authenticatedGet(`/units/details/${encodeURIComponent(unitName)}`, filters as Record<string, string>),
+    authenticatedGet(`units/details/${encodeURIComponent(unitName)}`, filters as Record<string, string>),
 };
