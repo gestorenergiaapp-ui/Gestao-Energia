@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../shared/Modal';
 import type { Contract, ContractFormData } from '../../types';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
+import { useForm } from '../../hooks/useForm';
 
 interface ContractFormModalProps {
   isOpen: boolean;
@@ -16,22 +17,19 @@ const initialFormData: ContractFormData = {
 };
 
 const ContractFormModal: React.FC<ContractFormModalProps> = ({ isOpen, onClose, onSave, contractToEdit }) => {
-  const [formData, setFormData] = useState<ContractFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
+  
+  const initialFormState = useMemo(() => {
+    return contractToEdit ? { nome: contractToEdit.nome } : initialFormData;
+  }, [contractToEdit]);
+
+  const { formData, handleChange } = useForm(initialFormState);
 
   useEffect(() => {
-    if (isOpen) { // Reset form state when modal opens
-        if (contractToEdit) {
-          setFormData({ nome: contractToEdit.nome });
-        } else {
-          setFormData(initialFormData);
-        }
+    if (!isOpen) {
+        setLoading(false);
     }
-  }, [contractToEdit, isOpen]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

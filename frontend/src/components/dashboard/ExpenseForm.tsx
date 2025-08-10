@@ -3,8 +3,8 @@ import type { Expense, ExpensePostData, Unit, Competence } from '../../types';
 import { ExpenseType, SubtypeEncargo, MarketType } from '../../types';
 import { EXPENSE_TYPE_OPTIONS, SUBTYPE_ENCARGO_OPTIONS } from '../../constants';
 import { api } from '../../services/api';
-import _ from 'lodash';
 import toast from 'react-hot-toast';
+import { useForm } from '../../hooks/useForm';
 
 interface ExpenseFormProps {
   expenseToEdit?: Expense | null;
@@ -15,7 +15,21 @@ interface ExpenseFormProps {
   setIsDirty: (isDirty: boolean) => void;
 }
 
-const getInitialFormData = () => {
+const getInitialFormData = (expenseToEdit: Expense | null, competences: Competence[]) => {
+    if (expenseToEdit) {
+      const comp = competences.find(c => c._id === expenseToEdit.competenciaId);
+      const competenciaString = comp ? `${comp.ano}-${String(comp.mes).padStart(2, '0')}` : '';
+      return {
+        unidadeId: expenseToEdit.unidadeId,
+        competencia: competenciaString,
+        tipoDespesa: expenseToEdit.tipoDespesa,
+        subtipoEncargo: expenseToEdit.subtipoEncargo,
+        valor: expenseToEdit.valor,
+        vencimento: new Date(expenseToEdit.vencimento).toISOString().split('T')[0],
+        codigoLancamento: expenseToEdit.codigoLancamento || '',
+        detalhesDistribuidora: expenseToEdit.detalhesDistribuidora,
+      };
+    }
     const today = new Date();
     const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     return {
@@ -30,82 +44,56 @@ const getInitialFormData = () => {
     };
 };
 
+
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ expenseToEdit, units, competences, onCancel, onSave, setIsDirty }) => {
-  const [formData, setFormData] = useState<Omit<ExpensePostData, "valor"> & { valor: string | number }>(getInitialFormData());
-  const [initialState, setInitialState] = useState(getInitialFormData());
+  const initialFormState = useMemo(() => getInitialFormData(expenseToEdit, competences), [expenseToEdit, competences]);
+  const { formData, setFormData, handleChange, isDirty } = useForm<Omit<ExpensePostData, "valor"> & { valor: string | number }>(initialFormState);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setIsDirty(isDirty);
+  }, [isDirty, setIsDirty]);
 
   const currentMarketType = useMemo(() => {
     return units.find(u => u._id === formData.unidadeId)?.marketType;
   }, [formData.unidadeId, units]);
 
+   // Handle cascading logic when unit or expense type changes
   useEffect(() => {
-    let stateToSet;
-    if (expenseToEdit) {
-      const comp = competences.find(c => c._id === expenseToEdit.competenciaId);
-      const competenciaString = comp ? `${comp.ano}-${String(comp.mes).padStart(2, '0')}` : '';
+      const selectedUnit = units.find(u => u._id === formData.unidadeId);
+      if (!selectedUnit) return;
+      
+      let newTipoDespesa = formData.tipoDespesa;
+      let newDetalhes = formData.detalhesDistribuidora;
+      let newSubtipo = formData.subtipoEncargo;
 
-      stateToSet = {
-        unidadeId: expenseToEdit.unidadeId,
-        competencia: competenciaString,
-        tipoDespesa: expenseToEdit.tipoDespesa,
-        subtipoEncargo: expenseToEdit.subtipoEncargo,
-        valor: expenseToEdit.valor,
-        vencimento: new Date(expenseToEdit.vencimento).toISOString().split('T')[0],
-        codigoLancamento: expenseToEdit.codigoLancamento || '',
-        detalhesDistribuidora: expenseToEdit.detalhesDistribuidora,
-      };
-    } else {
-      stateToSet = getInitialFormData();
-    }
-    setFormData(stateToSet);
-    setInitialState(stateToSet);
-    setIsDirty(false);
-  }, [expenseToEdit, competences, setIsDirty]);
+      // Logic for unit change
+      if (selectedUnit.marketType === MarketType.CATIVO) {
+          newTipoDespesa = ExpenseType.DISTRIBUIDORA;
+      }
+      
+      // Logic for type change
+      if(newTipoDespesa === ExpenseType.DISTRIBUIDORA) {
+          newSubtipo = null;
+          if (!newDetalhes) {
+            newDetalhes = { consumoMWh: 0, reativoKWh: 0, reativoValor: 0, demandaUltrKW: 0, demandaUltrValor: 0 };
+          }
+      } else {
+          newDetalhes = null;
+      }
+      
+      if(newTipoDespesa !== ExpenseType.ENCARGO) {
+          newSubtipo = null;
+      }
 
-   useEffect(() => {
-        const isDirty = !_.isEqual(formData, initialState);
-        setIsDirty(isDirty);
-    }, [formData, initialState, setIsDirty]);
+      setFormData(prev => ({
+          ...prev,
+          tipoDespesa: newTipoDespesa,
+          detalhesDistribuidora: newDetalhes,
+          subtipoEncargo: newSubtipo,
+      }));
 
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => {
-        let newState = { ...prev, [name]: value };
-
-        // Handle cascading changes based on Unit selection
-        if (name === 'unidadeId') {
-            const selectedUnit = units.find(u => u._id === value);
-            if (selectedUnit?.marketType === MarketType.CATIVO) {
-                newState.tipoDespesa = ExpenseType.DISTRIBUIDORA;
-                newState.subtipoEncargo = null;
-                if (!newState.detalhesDistribuidora) {
-                    newState.detalhesDistribuidora = { consumoMWh: 0, reativoKWh: 0, reativoValor: 0, demandaUltrKW: 0, demandaUltrValor: 0 };
-                }
-            } else { // MarketType.LIVRE
-                 if (newState.tipoDespesa === ExpenseType.DISTRIBUIDORA && !newState.detalhesDistribuidora) {
-                     newState.detalhesDistribuidora = { consumoMWh: 0, reativoKWh: 0, reativoValor: 0, demandaUltrKW: 0, demandaUltrValor: 0 };
-                 } else if (newState.tipoDespesa !== ExpenseType.DISTRIBUIDORA) {
-                    newState.detalhesDistribuidora = null;
-                 }
-            }
-        }
-
-        // Handle cascading changes based on Expense Type selection
-        if (name === 'tipoDespesa') {
-            newState.subtipoEncargo = null; // Reset subtype if main type changes
-             if (value === ExpenseType.DISTRIBUIDORA && !newState.detalhesDistribuidora) {
-                newState.detalhesDistribuidora = { consumoMWh: 0, reativoKWh: 0, reativoValor: 0, demandaUltrKW: 0, demandaUltrValor: 0 };
-             } else if (value !== ExpenseType.DISTRIBUIDORA) {
-                newState.detalhesDistribuidora = null;
-             }
-        }
-        
-        return newState;
-    });
-  };
+  }, [formData.unidadeId, formData.tipoDespesa, units, setFormData]);
 
 
   const handleDetailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {

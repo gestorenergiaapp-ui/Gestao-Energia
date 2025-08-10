@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { api } from '../../services/api';
-import type { User, Unit, Contract, Competence } from '../../types';
+import React, { useState, useContext } from 'react';
+import type { User } from '../../types';
 import ProfileSettings from './ProfileSettings';
 import UnitManagement from './UnitManagement';
 import ContractManagement from './ContractManagement';
@@ -31,43 +30,25 @@ const TabButton: React.FC<{ label: string, tab: SettingsTab, activeTab: Settings
 const SettingsScreen: React.FC = () => {
     const { user } = useContext(AuthContext);
     const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-    const [users, setUsers] = useState<User[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [contracts, setContracts] = useState<Contract[]>([]);
-    const [competences, setCompetences] = useState<Competence[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        try {
-            if (user?.role === 'admin') {
-                const [usersData, unitsData, contractsData, competencesData] = await Promise.all([
-                    api.getUsers(),
-                    api.getAllUnits(), // For admin, this gets all units
-                    api.getContracts(),
-                    api.getCompetences(),
-                ]);
-                setUsers(usersData);
-                setUnits(unitsData);
-                setContracts(contractsData);
-                setCompetences(competencesData.sort((a, b) => b.ano - a.ano || b.mes - a.mes));
-            }
-        } catch (error) {
-            console.error("Failed to load settings data", error);
-        } finally {
-            setLoading(false);
+    const renderContent = () => {
+        switch(activeTab) {
+            case 'profile':
+                return <ProfileSettings />;
+            case 'users':
+                 return user?.role === 'admin' ? <UserManagement /> : null;
+            case 'units':
+                return user?.role === 'admin' ? <UnitManagement /> : null;
+            case 'contracts':
+                return user?.role === 'admin' ? <ContractManagement /> : null;
+            case 'competences':
+                return user?.role === 'admin' ? <CompetenceManagement /> : null;
+            case 'logs':
+                return user?.role === 'admin' ? <AuditLogScreen /> : null;
+            default:
+                return <ProfileSettings />;
         }
-    }, [user?.role]);
-
-    useEffect(() => {
-        // Only load data if the active tab requires it and user is an admin
-        if (user?.role === 'admin' && ['users', 'units', 'contracts', 'competences'].includes(activeTab)) {
-            loadData();
-        } else {
-            setLoading(false);
-        }
-    }, [loadData, activeTab, user?.role]);
-
+    }
 
     return (
         <div className="space-y-8">
@@ -88,17 +69,8 @@ const SettingsScreen: React.FC = () => {
                 </nav>
             </div>
             
-            <div className="mt-6">
-                {activeTab === 'profile' && <ProfileSettings />}
-                {user?.role === 'admin' && (
-                    <>
-                        {activeTab === 'users' && <UserManagement users={users} allUnits={units} reloadData={loadData} loading={loading} />}
-                        {activeTab === 'units' && <UnitManagement units={units} contracts={contracts} reloadData={loadData} loading={loading} />}
-                        {activeTab === 'contracts' && <ContractManagement contracts={contracts} reloadData={loadData} loading={loading} />}
-                        {activeTab === 'competences' && <CompetenceManagement competences={competences} reloadData={loadData} loading={loading} />}
-                        {activeTab === 'logs' && <AuditLogScreen />}
-                    </>
-                )}
+            <div className="mt-6" key={activeTab}>
+                {renderContent()}
             </div>
 
         </div>

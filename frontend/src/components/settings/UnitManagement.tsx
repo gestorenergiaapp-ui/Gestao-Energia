@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ContentCard from '../shared/ContentCard';
 import { api } from '../../services/api';
 import type { Unit, Contract } from '../../types';
@@ -6,16 +6,33 @@ import UnitFormModal from './UnitFormModal';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-interface UnitManagementProps {
-    units: Unit[];
-    contracts: Contract[];
-    reloadData: () => void;
-    loading: boolean;
-}
-
-const UnitManagement: React.FC<UnitManagementProps> = ({ units, contracts, reloadData, loading }) => {
+const UnitManagement: React.FC = () => {
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [contracts, setContracts] = useState<Contract[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+
+    const reloadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [unitsData, contractsData] = await Promise.all([
+                api.getAllUnits(),
+                api.getContracts()
+            ]);
+            setUnits(unitsData);
+            setContracts(contractsData);
+        } catch(error) {
+            toast.error('Falha ao carregar dados de unidades.');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        reloadData();
+    }, [reloadData]);
 
     const handleOpenModal = (unit: Unit | null = null) => {
         setEditingUnit(unit);

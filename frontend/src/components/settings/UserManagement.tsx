@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import ContentCard from '../shared/ContentCard';
 import { api } from '../../services/api';
 import type { User, Unit } from '../../types';
@@ -13,17 +13,34 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-interface UserManagementProps {
-    users: User[];
-    allUnits: Unit[];
-    reloadData: () => void;
-    loading: boolean;
-}
-
-const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reloadData, loading }) => {
+const UserManagement: React.FC = () => {
     const { user: currentUser } = useContext(AuthContext);
+    const [users, setUsers] = useState<User[]>([]);
+    const [allUnits, setAllUnits] = useState<Unit[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isUnitsModalOpen, setIsUnitsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+    const reloadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [usersData, unitsData] = await Promise.all([
+                api.getUsers(),
+                api.getAllUnits()
+            ]);
+            setUsers(usersData);
+            setAllUnits(unitsData);
+        } catch (error) {
+            toast.error("Falha ao carregar dados dos usuários.");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        reloadData();
+    }, [reloadData]);
 
     const handleOpenUnitsModal = (user: User) => {
         setSelectedUser(user);
@@ -133,13 +150,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reload
                                 <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-white sm:pl-6">Nome</th>
                                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-white">Email</th>
                                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-white">Perfil</th>
+                                <th className="px-3 py-3.5 text-center text-sm font-semibold text-white">Unidades</th>
                                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-white">Status</th>
                                 <th className="px-3 py-3.5 text-center text-sm font-semibold text-white">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="bg-gray-900 divide-y divide-gray-800">
                             {loading ? (
-                                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Carregando...</td></tr>
+                                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Carregando...</td></tr>
                             ) : users.length > 0 ? (
                                 users.map(user => {
                                     const isMainAdmin = user.email === 'admin@example.com';
@@ -163,6 +181,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reload
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
+                                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300 text-center">
+                                            {canManageUnits ? (
+                                                <button
+                                                    onClick={() => handleOpenUnitsModal(user)}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-md bg-sky-900/50 px-3 py-1 text-sm font-semibold text-sky-300 shadow-sm hover:bg-sky-900"
+                                                    title="Gerenciar Unidades"
+                                                >
+                                                    <BuildingOfficeIcon className="h-4 w-4" />
+                                                    <span>{user.accessibleUnitIds?.length || 0}</span>
+                                                </button>
+                                            ) : (
+                                                <span className="text-gray-500">-</span>
+                                            )}
+                                        </td>
                                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
                                             <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeClass(user.status)}`}>
                                             {statusText(user.status)}
@@ -170,11 +202,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reload
                                         </td>
                                         <td className="whitespace-nowrap py-4 text-sm font-medium">
                                             <div className="flex items-center justify-center gap-x-4">
-                                                {canManageUnits && (
-                                                    <button onClick={() => handleOpenUnitsModal(user)} title="Gerenciar Unidades" className="text-sky-400 hover:text-sky-300">
-                                                        <BuildingOfficeIcon className="h-5 w-5" />
-                                                    </button>
-                                                )}
                                                 {user.status === 'pending' && (
                                                     <button onClick={() => handleUpdateStatus(user, 'active')} title="Aprovar Usuário" className="text-green-400 hover:text-green-300">
                                                         <CheckCircleIcon className="h-5 w-5" />
@@ -200,7 +227,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reload
                                     </tr>
                                 )})
                             ) : (
-                                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum usuário encontrado.</td></tr>
+                                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Nenhum usuário encontrado.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -226,25 +253,35 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, allUnits, reload
                                           {statusText(user.status)}
                                         </span>
                                     </div>
-                                    <div className="mt-4 pt-2 border-t border-gray-700/50">
-                                         <label htmlFor={`role-${user._id}`} className="block text-xs font-medium text-gray-400 mb-1">Perfil</label>
-                                         <select 
-                                          id={`role-${user._id}`}
-                                          name="role" 
-                                          value={user.role}
-                                          onChange={(e) => handleRoleChange(user._id, e.target.value as User['role'])}
-                                          disabled={isMainAdmin || isCurrentUser}
-                                          className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block px-3 py-2 disabled:bg-gray-800/50 disabled:cursor-not-allowed disabled:text-gray-400"
-                                        >
-                                            <option value="user">Usuário</option>
-                                            <option value="gestor">Gestor</option>
-                                            <option value="admin">Admin</option>
-                                        </select>
+                                    <div className="mt-4 pt-2 border-t border-gray-700/50 grid grid-cols-2 gap-4">
+                                         <div>
+                                            <label htmlFor={`role-${user._id}`} className="block text-xs font-medium text-gray-400 mb-1">Perfil</label>
+                                            <select 
+                                            id={`role-${user._id}`}
+                                            name="role" 
+                                            value={user.role}
+                                            onChange={(e) => handleRoleChange(user._id, e.target.value as User['role'])}
+                                            disabled={isMainAdmin || isCurrentUser}
+                                            className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block px-3 py-2 disabled:bg-gray-800/50 disabled:cursor-not-allowed disabled:text-gray-400"
+                                            >
+                                                <option value="user">Usuário</option>
+                                                <option value="gestor">Gestor</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                         </div>
+                                         <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">Permissões</label>
+                                            {canManageUnits ? (
+                                                <button onClick={() => handleOpenUnitsModal(user)} title="Gerenciar Unidades" className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-md bg-sky-900/50 px-3 py-1 text-sm font-semibold text-sky-300 shadow-sm hover:bg-sky-900">
+                                                    <BuildingOfficeIcon className="h-5 w-5" />
+                                                    <span>{user.accessibleUnitIds?.length || 0} Unidades</span>
+                                                </button>
+                                            ) : (
+                                                <div className="w-full h-10 flex items-center justify-center rounded-md bg-gray-700/30 text-gray-500 text-sm">N/A</div>
+                                            )}
+                                         </div>
                                     </div>
                                     <div className="flex justify-end items-center gap-4 mt-4 pt-2 border-t border-gray-700/50">
-                                         {canManageUnits && (
-                                            <button onClick={() => handleOpenUnitsModal(user)} title="Gerenciar Unidades" className="text-sky-400 hover:text-sky-300"><BuildingOfficeIcon className="h-6 w-6" /></button>
-                                        )}
                                         {user.status === 'pending' && (
                                             <button onClick={() => handleUpdateStatus(user, 'active')} title="Aprovar Usuário" className="text-green-400 hover:text-green-300"><CheckCircleIcon className="h-6 w-6" /></button>
                                         )}

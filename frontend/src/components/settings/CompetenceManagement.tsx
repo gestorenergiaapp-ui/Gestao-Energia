@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ContentCard from '../shared/ContentCard';
 import { api } from '../../services/api';
 import type { Competence, CompetenceFormData } from '../../types';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-interface CompetenceManagementProps {
-    competences: Competence[];
-    reloadData: () => void;
-    loading: boolean;
-}
-
-const CompetenceManagement: React.FC<CompetenceManagementProps> = ({ competences, reloadData, loading }) => {
+const CompetenceManagement: React.FC = () => {
+    const [competences, setCompetences] = useState<Competence[]>([]);
+    const [loading, setLoading] = useState(true);
     const [newCompetence, setNewCompetence] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    const reloadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await api.getCompetences();
+            setCompetences(data.sort((a, b) => b.ano - a.ano || b.mes - a.mes));
+        } catch (error) {
+            toast.error("Falha ao carregar competências.");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        reloadData();
+    }, [reloadData]);
+
     const handleAddCompetence = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newCompetence) {

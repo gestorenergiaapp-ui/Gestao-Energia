@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ContentCard from '../shared/ContentCard';
 import { api } from '../../services/api';
 import type { Contract } from '../../types';
@@ -6,15 +6,28 @@ import ContractFormModal from './ContractFormModal';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-interface ContractManagementProps {
-    contracts: Contract[];
-    reloadData: () => void;
-    loading: boolean;
-}
-
-const ContractManagement: React.FC<ContractManagementProps> = ({ contracts, reloadData, loading }) => {
+const ContractManagement: React.FC = () => {
+    const [contracts, setContracts] = useState<Contract[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<Contract | null>(null);
+
+    const reloadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await api.getContracts();
+            setContracts(data);
+        } catch(error) {
+            toast.error('Falha ao carregar contratos.');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        reloadData();
+    }, [reloadData]);
 
     const handleOpenModal = (contract: Contract | null = null) => {
         setEditingContract(contract);

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../shared/Modal';
 import type { Unit, UnitFormData, Contract } from '../../types';
 import { MarketType } from '../../types';
 import { api } from '../../services/api';
 import { MARKET_TYPE_OPTIONS } from '../../constants';
 import toast from 'react-hot-toast';
+import { useForm } from '../../hooks/useForm';
 
 interface UnitFormModalProps {
   isOpen: boolean;
@@ -21,24 +22,24 @@ const initialFormData: UnitFormData = {
 };
 
 const UnitFormModal: React.FC<UnitFormModalProps> = ({ isOpen, onClose, onSave, unitToEdit, contracts }) => {
-  const [formData, setFormData] = useState<UnitFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (unitToEdit) {
-      setFormData({
+  
+  const initialFormState = useMemo(() => {
+    return unitToEdit ? {
         nome: unitToEdit.nome,
         contratoId: unitToEdit.contratoId,
         marketType: unitToEdit.marketType,
-      });
-    } else {
-      setFormData(initialFormData);
-    }
-  }, [unitToEdit, isOpen]);
+      } : initialFormData;
+  }, [unitToEdit]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const { formData, handleChange } = useForm(initialFormState);
+
+  useEffect(() => {
+    // Reset form when modal opens with a different unit
+    if (!isOpen) {
+        setLoading(false);
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
