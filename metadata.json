@@ -1,6 +1,6 @@
 {
-  "name": "Gestor de Despesas de Energia",
-  "description": "Um dashboard para visualização e gerenciamento de despesas de energia, permitindo análises por unidade, competência e tipo de despesa.",
+  "name": "Gestor de Despesas de Energia (Full-Stack)",
+  "description": "Uma aplicação full-stack com frontend (React/Vite) e backend (Node/Express) separados para gerenciamento e análise de despesas de energia.",
   "requestFramePermissions": [],
   "prompt": ""
 }

@@ -1,120 +1,237 @@
 # Gestor de Despesas de Energia
 
-Este é um projeto full-stack para gerenciamento de despesas de energia, composto por um **Frontend** em React e um **Backend** em Node.js/Express com MongoDB.
+Este é um projeto full-stack para gerenciamento de despesas de energia, agora com uma arquitetura profissional que separa o **Frontend** (React/Vite) e o **Backend** (Node.js/Express) em pastas independentes usando workspaces.
 
 ## Arquitetura
 
-A aplicação é dividida em duas partes independentes:
+A aplicação é dividida em duas partes que rodam de forma independente:
 
--   **Frontend:** A interface do usuário construída com React (o que está nesta pasta). Ela é responsável por exibir os dados e não tem acesso direto ao banco de dados.
--   **Backend:** Um servidor de API (código em `server.js`) que se conecta de forma segura ao banco de dados MongoDB e fornece os dados para o frontend.
+-   `frontend/`: A interface do usuário construída com React e gerenciada pelo Vite. É responsável por exibir os dados e se comunica com o backend através de uma API.
+-   `backend/`: Um servidor de API (código em `server.js`) que se conecta de forma segura ao banco de dados MongoDB e fornece os dados para o frontend.
 
-**IMPORTANTE:** O Frontend NUNCA deve se conectar diretamente ao banco de dados. Isso é uma prática de segurança fundamental para proteger suas credenciais e seus dados.
+**IMPORTANTE:** O Frontend NUNCA se conecta diretamente ao banco de dados. Essa separação é uma prática de segurança fundamental para proteger suas credenciais e seus dados.
+
+---
+
+## Limpando Arquivos da Estrutura Antiga
+
+Se você está migrando da versão antiga deste projeto (onde o frontend e o backend não estavam em pastas separadas), você pode apagar com segurança os seguintes arquivos e pastas da **raiz do seu projeto** para evitar conflitos e manter tudo organizado.
+
+**Arquivos para Apagar (da raiz):**
+
+*   `index.html` (o novo está em `frontend/index.html`)
+*   `vite.config.ts` (o novo está em `frontend/vite.config.ts`)
+*   `tailwind.config.js` (o novo está em `frontend/tailwind.config.js`)
+*   `postcss.config.js` (o novo está em `frontend/postcss.config.js`)
+*   `tsconfig.json` e `tsconfig.node.json` (os novos estão em `frontend/`)
+*   `package-lock.json` (cada workspace, `frontend` e `backend`, terá o seu próprio)
+*   `index.tsx` (o arquivo de entrada agora é `frontend/src/index.tsx`)
+
+**Pastas para Apagar (da raiz):**
+
+*   `src/` (todo o código-fonte foi movido para `frontend/src/`)
+*   `public/` (se existir, seu conteúdo deve ser movido para `frontend/public/`)
+*   `node_modules/` (a instalação agora é feita para cada workspace)
+
+**IMPORTANTE:** **NÃO apague** o arquivo `package.json` da raiz. Ele agora serve para gerenciar os workspaces do frontend e do backend e é essencial para os comandos `npm run dev` e `npm run install:all`.
 
 ---
 
 ## Como Executar o Projeto Localmente
 
-Você precisará executar o Backend e o Frontend simultaneamente em terminais separados.
+Siga os passos abaixo para rodar a aplicação completa na sua máquina.
 
 ### Pré-requisitos
 
 -   [Node.js](https://nodejs.org/) (versão 18 ou superior)
--   [npm](https://www.npmjs.com/) (geralmente instalado com o Node.js)
+-   [npm](https://www.npmjs.com/) (versão 7 ou superior, para suporte a workspaces)
 -   Uma conta no [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) com um cluster gratuito.
+-   Uma conta no [EmailJS](https://www.emailjs.com/) para envio de e-mails.
+-   (Opcional) Uma conta no [Imgur](https://imgur.com/upload) para hospedar o logo da sua aplicação.
 
 ---
 
-### Passo 1: Configurar e Executar o Backend (Servidor)
+### Passo 1: Configurar os Ambientes
+
+#### 1.1 - Backend
 
 1.  **Abra um terminal** na pasta raiz do projeto.
+2.  **Crie o arquivo de ambiente do backend:**
+    -   Dentro da pasta `backend`, crie um arquivo chamado `.env`.
+3.  **Configure as Variáveis de Ambiente:**
+    -   Copie e cole o conteúdo abaixo no seu novo arquivo `backend/.env` e preencha com suas credenciais.
+    ```
+    # MongoDB Connection
+    DATABASE_URL=mongodb+srv://<user>:<password>@<cluster-url>/<db-name>?retryWrites=true&w=majority
 
-2.  **Instale as dependências do servidor:**
+    # Security: CORS Origin (obrigatório para produção)
+    # Para desenvolvimento local, use a URL do seu frontend (ex: http://localhost:5173).
+    # Para produção, use a URL pública do seu frontend (ex: https://seu-app.netlify.app).
+    CORS_ORIGIN=http://localhost:5173
+
+    # EmailJS Credentials
+    EMAILJS_SERVICE_ID=seu_service_id
+    EMAILJS_PUBLIC_KEY=sua_public_key
+    EMAILJS_PRIVATE_KEY=sua_private_key
+    EMAILJS_FORGOT_PASSWORD_TEMPLATE_ID=seu_template_id_de_senha
+    EMAILJS_REPORT_TEMPLATE_ID=seu_template_id_de_relatorio
+
+    # Opcional: URL do Logo da Aplicação
+    # Hospede seu logo (ex: no Imgur) e cole o link direto aqui.
+    # Se não for fornecido, um logo SVG padrão será usado.
+    APP_LOGO_URL=https://i.imgur.com/rM45A5u.png
+    ```
+4.  **Configure o Serviço de Email (EmailJS):**
+    -   Acesse sua [conta no EmailJS](https://dashboard.emailjs.com/).
+    -   **Email Services:** Adicione um serviço de e-mail (ex: Gmail). Anote o **Service ID**.
+    -   <span style="color: #FBBF24; background-color: #372800; padding: 2px 6px; border-radius: 4px;">**PASSO CRÍTICO: Ativar Chamadas de API**</span>
+        -   Depois de adicionar seu serviço de e-mail (Gmail, etc.), **clique para editá-lo**.
+        -   **Ative a opção "API Calls"**. Por padrão, ela vem desativada e é **obrigatória** para que o backend possa enviar e-mails a partir do servidor. Se este passo for esquecido, você receberá um erro `403 Forbidden` no terminal do backend.
+    -   **Email Templates:** Crie **dois** templates:
+        -   **Template de "Esqueci a Senha"**:
+            -   Crie um novo template. Anote o **Template ID**.
+            -   Na aba **"Settings"**: no campo "To Email", digite exatamente `{{to_email}}`. Isso permite que o backend informe ao EmailJS para quem o e-mail deve ser enviado.
+            -   **Assunto**: `Redefinição de Senha - Gestor de Energia`
+            -   **Conteúdo**: Copie e cole **todo** o bloco de código HTML abaixo. Ele já está formatado com a identidade visual do app e com a variável `{{logo_url}}` para receber o logo dinamicamente.
+                ```html
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Redefinição de Senha</title>
+                </head>
+                <body style="margin: 0; padding: 0; width: 100%; background-color: #111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td align="center" style="padding: 20px 0;">
+                                <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+                                    <!-- Header com Logo -->
+                                    <tr>
+                                        <td align="center" style="background-color: #1f2937; padding: 20px 0; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                                            <img src="{{logo_url}}" alt="Logo Gestor de Energia" style="height: 48px; width: auto; border: 0;" />
+                                        </td>
+                                    </tr>
+                                    <!-- Corpo do E-mail -->
+                                    <tr>
+                                        <td style="background-color: #2d3748; padding: 32px; color: #e2e8f0;">
+                                            <h1 style="font-size: 24px; font-weight: bold; color: #ffffff; margin-top: 0; margin-bottom: 24px;">Redefinição de Senha</h1>
+                                            <p style="font-size: 16px; line-height: 1.5; margin: 0 0 16px;">Olá <strong>{{user_name}}</strong>,</p>
+                                            <p style="font-size: 16px; line-height: 1.5; margin: 0 0 24px;">Sua nova senha temporária de acesso ao Gestor de Energia é:</p>
+                
+                                            <!-- Box da Senha Temporária -->
+                                            <div style="background-color: #1f2937; border: 1px dashed #4a5568; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                                                <p style="font-size: 20px; font-weight: bold; letter-spacing: 2px; color: #a5b4fc; margin: 0; font-family: 'Courier New', Courier, monospace;">
+                                                    {{temp_password}}
+                                                </p>
+                                            </div>
+                
+                                            <p style="font-size: 16px; line-height: 1.5; margin: 0 0 16px;">Recomendamos fortemente que você altere esta senha para uma de sua preferência imediatamente após fazer o login.</p>
+                                            <p style="font-size: 16px; line-height: 1.5; margin: 0;">Atenciosamente,<br>Equipe Gestor de Energia</p>
+                                        </td>
+                                    </tr>
+                                    <!-- Footer -->
+                                    <tr>
+                                        <td align="center" style="padding: 24px; font-size: 12px; color: #718096;">
+                                            <p style="margin: 0;">Este e-mail foi enviado para {{to_email}}.</p>
+                                            <p style="margin: 5px 0 0;">Se você não solicitou a redefinição de senha, por favor ignore esta mensagem.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                ```
+        -   **Template de "Relatório Mensal"**:
+            -   Crie um novo template. Anote o **Template ID**.
+            -   Na aba **"Settings"**: no campo "To Email", digite exatamente `{{to_email}}`.
+            -   **Assunto**: `{{subject}}`
+            -   **Conteúdo**: Use a variável `{{{html_body}}}` com **três chaves** para renderizar o HTML do relatório que vem do backend corretamente.
+                ```html
+                {{{html_body}}}
+                ```
+
+#### 1.2 - Frontend
+
+1.  **Descubra o IP do seu computador** na sua rede (no Windows, use `ipconfig`; no Mac/Linux, `ifconfig` ou `ip addr`). Será algo como `192.168.1.10`. Este passo é apenas se você quiser acessar a aplicação de outro dispositivo na mesma rede (como um celular).
+2.  **Crie o arquivo de ambiente do frontend:**
+    -   Dentro da pasta `frontend`, crie um arquivo chamado `.env`.
+3.  **Configure as Variáveis de Ambiente:**
+    -   No seu novo arquivo `frontend/.env`, adicione as seguintes linhas, substituindo o IP de exemplo pelo IP real do seu computador, se necessário.
+    ```
+    # URL da sua API backend. Use o IP para testes em rede local.
+    VITE_API_BASE_URL=http://192.168.1.10:4000/api
+    
+    # Opcional: URL do Logo da Aplicação. Use a mesma URL do backend.
+    VITE_APP_LOGO_URL=https://i.imgur.com/rM45A5u.png
+    ```
+    -   **Observação:** Se você não criar este arquivo, a aplicação usará `http://localhost:4000/api` como padrão para a API, funcionando apenas no navegador do próprio computador.
+
+---
+
+### Passo 2: Instalar Dependências e Rodar
+
+1.  **Instale TODAS as dependências (raiz, frontend e backend) de uma só vez:**
+    -   No terminal, na pasta **raiz** do projeto, rode o comando:
     ```bash
-    npm install express mongodb cors dotenv bcryptjs nodemailer
+    npm run install:all
     ```
 
-3.  **Crie o arquivo de ambiente:**
-    -   Crie um arquivo chamado `.env` na raiz do projeto.
-    -   Copie o conteúdo de `.env.example` para o seu novo arquivo `.env`.
-
-4.  **Configure a Conexão com o Banco de Dados:**
-    -   Faça login na sua conta do MongoDB Atlas.
-    -   Encontre a sua "connection string".
-    -   No seu arquivo `.env`, substitua `<db_password>` pela senha do seu usuário do banco de dados e defina o nome do banco (ex: `energy-manager`) na string.
-    -   **Exemplo:** `DATABASE_URL=mongodb+srv://wendel:SENHASECRETA@cluster0.plgnih6.mongodb.net/energy-manager?retryWrites=true&w=majority&appName=Cluster0`
-
-5.  **Configure o Serviço de Email (para "Esqueci a Senha"):**
-    -   No seu arquivo `.env`, preencha as variáveis `EMAIL_*`.
-    -   **Para o Gmail:** Você precisará criar uma "Senha de App". Vá para a segurança da sua Conta Google, ative a verificação em duas etapas e, em seguida, gere uma Senha de App. Use essa senha de 16 caracteres no campo `EMAIL_PASS`.
-    -   **Exemplo para Gmail:**
-        ```
-        EMAIL_SERVICE=gmail
-        EMAIL_USER=seu-email@gmail.com
-        EMAIL_PASS=suasenhadegmailaqui
-        ```
-
-6.  **Inicie o servidor backend:**
+2.  **Inicie os servidores de backend e frontend simultaneamente:**
+    -   Ainda no terminal da raiz, rode o comando:
     ```bash
-    node server.js
+    npm run dev
     ```
-    Se tudo estiver correto, você verá a mensagem `Backend server running on port 4000` no seu terminal. **Mantenha este terminal aberto.**
+3.  O terminal mostrará logs de ambos os servidores. Abra a URL do frontend (geralmente `http://localhost:5173`, mas verifique o output do terminal) no seu navegador para usar a aplicação. Se configurou o IP no Passo 1.2, você também pode acessar `http://SEU_IP_AQUI:5173` no seu celular.
 
 ---
 
-### Passo 2: Executar o Frontend (Interface do Usuário)
+## Como Publicar (Deployment) - Vercel & Netlify
 
-1.  **Abra um SEGUNDO terminal**, mantendo o terminal do backend em execução.
-2.  **Use uma extensão de servidor web simples**, como o [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) do VS Code.
-3.  **Inicie o frontend:** Clique com o botão direito no arquivo `index.html` e selecione "Open with Live Server".
+Com a nova estrutura, você fará o deploy de duas aplicações separadas. O projeto já está pré-configurado para um deploy fácil na Vercel (backend) e Netlify (frontend).
 
----
+### 1. Publicando o Backend na Vercel
 
-## Como Publicar em um Servidor (Deployment)
+A Vercel é ideal para hospedar nosso backend Node.js como uma função "serverless".
 
-Para colocar sua aplicação na internet, você precisa hospedar o backend e o frontend separadamente.
+1.  **Crie uma conta** na [Vercel](https://vercel.com/) e conecte seu repositório do GitHub/GitLab/Bitbucket.
+2.  **Importe o Projeto:**
+    -   Na Vercel, clique em "Add New..." -> "Project".
+    -   Selecione seu repositório. A Vercel deve detectar que é um monorepo.
+    -   Ela deve reconhecer a pasta `backend/`. O arquivo `vercel.json` na raiz do projeto já informa à Vercel como construir e rotear as requisições para a API.
+3.  **Configure as Variáveis de Ambiente:**
+    -   Vá para as configurações do seu projeto na Vercel ("Settings" -> "Environment Variables").
+    -   Adicione as mesmas variáveis que você tem no seu arquivo `backend/.env`:
+        -   `DATABASE_URL`
+        -   `CORS_ORIGIN` (A URL pública do seu frontend na Netlify, ex: `https://seu-app-frontend.netlify.app`)
+        -   `EMAILJS_SERVICE_ID`
+        -   `EMAILJS_PUBLIC_KEY`
+        -   `EMAILJS_PRIVATE_KEY`
+        -   `EMAILJS_FORGOT_PASSWORD_TEMPLATE_ID`
+        -   `EMAILJS_REPORT_TEMPLATE_ID`
+        -   `APP_LOGO_URL` (a URL pública do seu logo)
+4.  **Faça o Deploy:** Clique em "Deploy". Após alguns instantes, a Vercel fornecerá uma URL pública para a sua API (ex: `https://seu-projeto.vercel.app`). Guarde esta URL.
 
-### 1. Hospedando o Backend
+### 2. Publicando o Frontend na Netlify
 
-1.  **Escolha um serviço de hospedagem:** Plataformas como [Render](https://render.com/) ou [Heroku](https://www.heroku.com/).
-2.  **Faça o upload do seu código** (via Git).
-3.  **Configure o comando de build:** `node server.js`.
-4.  **Configure as Variáveis de Ambiente:** Na plataforma de hospedagem, adicione `DATABASE_URL`, `PORT`, `EMAIL_SERVICE`, `EMAIL_USER`, e `EMAIL_PASS`. **Não envie seu arquivo `.env` para o repositório Git!**
-5.  Após o deploy, a plataforma fornecerá uma URL pública para o seu backend.
+A Netlify é perfeita para hospedar nosso frontend React (arquivos estáticos).
 
-### 2. Hospedando o Frontend
+1.  **Crie uma conta** na [Netlify](https://www.netlify.com/) e conecte seu repositório.
+2.  **Importe o Projeto:**
+    -   Na Netlify, clique em "Add new site" -> "Import an existing project".
+    -   Selecione seu repositório.
+3.  **Configure as Opções de Build:**
+    -   O arquivo `netlify.toml` na raiz do projeto já configura isso automaticamente. A Netlify deve detectar e usar as seguintes configurações:
+        -   **Base directory:** `frontend`
+        -   **Build command:** `npm run build`
+        -   **Publish directory:** `frontend/dist`
+4.  **Configure as Variáveis de Ambiente:**
+    -   Antes de fazer o deploy, vá para "Site configuration" -> "Build & deploy" -> "Environment".
+    -   Adicione **duas** variáveis de ambiente:
+        -   **Key:** `VITE_API_BASE_URL` | **Value:** A URL da sua API na Vercel (que você guardou no passo anterior), incluindo `/api`. Ex: `https://seu-projeto.vercel.app/api`
+        -   **Key:** `VITE_APP_LOGO_URL` | **Value:** A URL pública do seu logo.
+5.  **Faça o Deploy:** Clique em "Deploy site". A Netlify irá construir o frontend e publicá-lo em uma URL pública (ex: `https://seu-app-frontend.netlify.app`).
 
-1.  **Atualize a URL da API:** No arquivo `services/api.ts`, altere `API_BASE_URL` para a URL do seu backend publicado.
-2.  **Escolha um serviço de hospedagem estática:** [Netlify](https://www.netlify.com/), [Vercel](https://vercel.com/), etc.
-3.  **Faça o upload do seu código.**
-
-Pronto! Sua aplicação está online.
-
----
-
-## Solução de Problemas (Troubleshooting)
-
-### Erro: "failed to fetch"
-
-Este é um erro de rede comum que geralmente significa que o seu frontend (a interface no navegador) não conseguiu se comunicar com o seu backend (o servidor `server.js`).
-
-Siga estes passos para diagnosticar:
-
-1.  **O Backend está em execução?**
-    -   Verifique o terminal onde você executou `node server.js`.
-    -   Ele deve exibir `Backend server running on port 4000` e não pode ter nenhuma mensagem de erro vermelha. Se houver erros, corrija-os primeiro (geralmente relacionados à conexão com o banco de dados no arquivo `.env`).
-    -   O terminal deve estar registrando as tentativas de acesso, como `[timestamp] POST /api/auth/login`. Se nada aparecer quando você tenta fazer login, a requisição não está chegando ao servidor.
-
-2.  **O Servidor está acessível?**
-    -   Com o backend em execução, abra seu navegador e acesse [http://localhost:4000](http://localhost:4000).
-    -   Você deve ver a mensagem: `{"message":"Backend server is running!"}`. Se isso não funcionar (a página não carregar), algo está bloqueando a porta 4000 na sua máquina (talvez um firewall ou outro programa).
-
-3.  **Verifique o Console do Navegador:**
-    -   Na página de login do seu app, abra as "Ferramentas do Desenvolvedor" (geralmente pressionando F12) e clique na aba "Console".
-    -   Tente fazer login novamente.
-    -   Procure por uma mensagem de erro mais detalhada. Se for um problema de **CORS**, a mensagem será bem explícita, algo como `Access to fetch at 'http://localhost:4000/api/auth/login' from origin 'http://127.0.0.1:5500' has been blocked by CORS policy...`.
-
-4.  **Verifique a URL da API:**
-    -   Confirme que a variável `API_BASE_URL` no arquivo `services/api.ts` está definida como `'http://localhost:4000/api'`.
-
-A atualização que fiz no `server.js` adiciona um logging mais detalhado e uma configuração de CORS mais robusta, o que deve resolver a maioria dos casos.
+Pronto! Sua aplicação full-stack está no ar. A partir de agora, cada `push` para a sua branch principal (ex: `main`) irá automaticamente disparar novos deploys tanto na Vercel quanto na Netlify.
