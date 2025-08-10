@@ -1,5 +1,6 @@
 
 
+
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors =require('cors');
@@ -18,6 +19,7 @@ const corsOptions = {
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            console.error(`CORS Blocked: The origin '${origin}' is not in the allowed list defined in CORS_ORIGIN.`);
             callback(new Error('Not allowed by CORS'));
         }
     },
