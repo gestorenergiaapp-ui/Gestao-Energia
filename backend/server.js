@@ -206,7 +206,7 @@ app.get('/', (req, res) => {
 
 // --- API Routes ---
 const api = express.Router();
-app.use('/api', api);
+app.use(api);
 
 // --- Health Check Route ---
 // This route is used by the frontend to verify connectivity.
