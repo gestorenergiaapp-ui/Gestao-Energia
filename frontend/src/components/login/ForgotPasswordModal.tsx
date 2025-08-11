@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Modal from '../shared/Modal';
-import { api } from '../../services/api';
+import Modal from '@/components/shared/Modal';
+import { api } from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface ForgotPasswordModalProps {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Expense, Unit, Competence, User, GroupedExpense } from '../../types';
-import { SUBTYPE_ENCARGO_OPTIONS } from '../../constants';
-import { MarketType } from '../../types';
+import type { Expense, Unit, Competence, User, GroupedExpense } from '@/types';
+import { SUBTYPE_ENCARGO_OPTIONS } from '@/constants';
+import { MarketType } from '@/types';
 import { ChevronRightIcon, EyeIcon, EyeSlashIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface ExpensesTableProps {

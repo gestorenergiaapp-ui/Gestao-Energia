@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../shared/Modal';
-import { api } from '../../services/api';
-import type { Unit, Competence, Estimate, Contract } from '../../types';
+import Modal from '@/components/shared/Modal';
+import { api } from '@/services/api';
+import type { Unit, Competence, Estimate, Contract } from '@/types';
 import toast from 'react-hot-toast';
 import _ from 'lodash';
 

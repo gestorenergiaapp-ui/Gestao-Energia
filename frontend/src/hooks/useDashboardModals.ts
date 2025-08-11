@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { Expense, UnitDetailData } from '../types';
-import { api } from '../services/api';
+import type { Expense, UnitDetailData } from '@/types';
+import { api } from '@/services/api';
 import toast from 'react-hot-toast';
 
 export type BreakdownModalProps = {

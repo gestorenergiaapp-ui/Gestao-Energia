@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ContentCard from '../shared/ContentCard';
-import { api } from '../../services/api';
-import type { Competence, CompetenceFormData } from '../../types';
+import ContentCard from '@/components/shared/ContentCard';
+import { api } from '@/services/api';
+import type { Competence, CompetenceFormData } from '@/types';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { api } from '../../services/api';
-import Logo from '../shared/Logo';
+import { api } from '@/services/api';
+import Logo from '@/components/shared/Logo';
 import toast from 'react-hot-toast';
 
 interface RegisterScreenProps {

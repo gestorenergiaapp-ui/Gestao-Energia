@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import ForgotPasswordModal from './ForgotPasswordModal';
-import Logo from '../shared/Logo';
+import Logo from '@/components/shared/Logo';
 import toast from 'react-hot-toast';
 
 interface LoginScreenProps {
@@ -13,7 +13,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

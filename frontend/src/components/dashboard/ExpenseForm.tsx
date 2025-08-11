@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Expense, ExpensePostData, Unit, Competence } from '../../types';
-import { ExpenseType, SubtypeEncargo, MarketType } from '../../types';
-import { EXPENSE_TYPE_OPTIONS, SUBTYPE_ENCARGO_OPTIONS } from '../../constants';
-import { api } from '../../services/api';
+import type { Expense, ExpensePostData, Unit, Competence } from '@/types';
+import { ExpenseType, SubtypeEncargo, MarketType } from '@/types';
+import { EXPENSE_TYPE_OPTIONS, SUBTYPE_ENCARGO_OPTIONS } from '@/constants';
+import { api } from '@/services/api';
 import toast from 'react-hot-toast';
-import { useForm } from '../../hooks/useForm';
+import { useForm } from '@/hooks/useForm';
 
 interface ExpenseFormProps {
   expenseToEdit?: Expense | null;

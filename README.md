@@ -65,9 +65,10 @@ Siga os passos abaixo para rodar a aplicação completa na sua máquina.
     DATABASE_URL=mongodb+srv://<user>:<password>@<cluster-url>/<db-name>?retryWrites=true&w=majority
 
     # Security: CORS Origin (obrigatório para produção)
-    # Para desenvolvimento local, use a URL do seu frontend (ex: http://localhost:5173).
-    # Para produção, use a URL pública do seu frontend (ex: https://seu-app.netlify.app).
-    CORS_ORIGIN=http://localhost:5173
+    # Para desenvolvimento local, o valor padrão http://localhost:5173 é permitido automaticamente.
+    # Para produção, você DEVE colocar a URL pública do seu frontend.
+    # É possível adicionar múltiplas URLs separadas por vírgula.
+    CORS_ORIGIN=https://seu-app-frontend.netlify.app
 
     # EmailJS Credentials
     EMAILJS_SERVICE_ID=seu_service_id
@@ -188,50 +189,69 @@ Siga os passos abaixo para rodar a aplicação completa na sua máquina.
 
 ---
 
-## Como Publicar (Deployment) - Vercel & Netlify
+## Como Publicar (Deployment)
 
-Com a nova estrutura, você fará o deploy de duas aplicações separadas. O projeto já está pré-configurado para um deploy fácil na Vercel (backend) e Netlify (frontend).
+Para colocar sua aplicação no ar, você fará o deploy do backend e do frontend separadamente.
 
-### 1. Publicando o Backend na Vercel
+### 1. Publicando o Backend (Vercel)
 
-A Vercel é ideal para hospedar nosso backend Node.js como uma função "serverless".
+A Vercel é a escolha recomendada para hospedar o backend Node.js. O projeto já está configurado com um arquivo `vercel.json` na raiz para facilitar este processo.
 
-1.  **Crie uma conta** na [Vercel](https://vercel.com/) e conecte seu repositório do GitHub/GitLab/Bitbucket.
-2.  **Importe o Projeto:**
-    -   Na Vercel, clique em "Add New..." -> "Project".
-    -   Selecione seu repositório. A Vercel deve detectar que é um monorepo.
-    -   Ela deve reconhecer a pasta `backend/`. O arquivo `vercel.json` na raiz do projeto já informa à Vercel como construir e rotear as requisições para a API.
+1.  **Crie uma conta** na [Vercel](https://vercel.com/) e conecte seu repositório do GitHub.
+2.  **Importe o Projeto:** Ao importar seu repositório, a Vercel deve detectar automaticamente a pasta `backend/`.
 3.  **Configure as Variáveis de Ambiente:**
     -   Vá para as configurações do seu projeto na Vercel ("Settings" -> "Environment Variables").
-    -   Adicione as mesmas variáveis que você tem no seu arquivo `backend/.env`:
-        -   `DATABASE_URL`
-        -   `CORS_ORIGIN` (A URL pública do seu frontend na Netlify, ex: `https://seu-app-frontend.netlify.app`)
-        -   `EMAILJS_SERVICE_ID`
-        -   `EMAILJS_PUBLIC_KEY`
-        -   `EMAILJS_PRIVATE_KEY`
-        -   `EMAILJS_FORGOT_PASSWORD_TEMPLATE_ID`
-        -   `EMAILJS_REPORT_TEMPLATE_ID`
-        -   `APP_LOGO_URL` (a URL pública do seu logo)
-4.  **Faça o Deploy:** Clique em "Deploy". Após alguns instantes, a Vercel fornecerá uma URL pública para a sua API (ex: `https://seu-projeto.vercel.app`). Guarde esta URL.
+    -   Adicione as mesmas variáveis que você tem no seu arquivo `backend/.env`.
+    -   **PONTO CRÍTICO - `CORS_ORIGIN`:**
+        -   Nesta variável, você deve colocar a **URL pública do seu frontend** (ex: `https://seu-app-frontend.netlify.app`).
+        -   Veja a nota abaixo sobre como configurar múltiplos ambientes (produção, previews, local).
+4.  **Faça o Deploy:** Clique em "Deploy". Após alguns instantes, a Vercel fornecerá uma URL pública para a sua API (ex: `https://seu-projeto-backend.vercel.app`). **Guarde esta URL.**
 
-### 2. Publicando o Frontend na Netlify
+---
 
-A Netlify é perfeita para hospedar nosso frontend React (arquivos estáticos).
+### 2. Publicando o Frontend (Netlify ou Vercel)
+
+Você pode escolher onde hospedar seu frontend.
+
+#### Opção A: Publicando na Netlify (Recomendado)
+
+A Netlify é excelente para hospedar sites estáticos como o nosso frontend React.
 
 1.  **Crie uma conta** na [Netlify](https://www.netlify.com/) e conecte seu repositório.
-2.  **Importe o Projeto:**
-    -   Na Netlify, clique em "Add new site" -> "Import an existing project".
-    -   Selecione seu repositório.
-3.  **Configure as Opções de Build:**
-    -   O arquivo `netlify.toml` na raiz do projeto já configura isso automaticamente. A Netlify deve detectar e usar as seguintes configurações:
-        -   **Base directory:** `frontend`
-        -   **Build command:** `npm run build`
-        -   **Publish directory:** `frontend/dist`
-4.  **Configure as Variáveis de Ambiente:**
+2.  **Importe o Projeto:** O arquivo `netlify.toml` na raiz do projeto já configura tudo para você. A Netlify deve detectar e usar automaticamente as seguintes configurações:
+    -   **Base directory:** `frontend`
+    -   **Build command:** `npm run build`
+    -   **Publish directory:** `frontend/dist`
+3.  **Configure as Variáveis de Ambiente:**
     -   Antes de fazer o deploy, vá para "Site configuration" -> "Build & deploy" -> "Environment".
-    -   Adicione **duas** variáveis de ambiente:
-        -   **Key:** `VITE_API_BASE_URL` | **Value:** A URL da sua API na Vercel (que você guardou no passo anterior), incluindo `/api`. Ex: `https://seu-projeto.vercel.app/api`
-        -   **Key:** `VITE_APP_LOGO_URL` | **Value:** A URL pública do seu logo.
-5.  **Faça o Deploy:** Clique em "Deploy site". A Netlify irá construir o frontend e publicá-lo em uma URL pública (ex: `https://seu-app-frontend.netlify.app`).
+    -   Adicione as seguintes variáveis:
+        -   `VITE_API_BASE_URL`: Cole a URL da sua API na Vercel (que você guardou no passo anterior), **incluindo `/api` no final**. Ex: `https://seu-projeto-backend.vercel.app/api`.
+        -   `VITE_APP_LOGO_URL`: A URL pública do seu logo.
+4.  **Faça o Deploy:** Clique em "Deploy site".
 
-Pronto! Sua aplicação full-stack está no ar. A partir de agora, cada `push` para a sua branch principal (ex: `main`) irá automaticamente disparar novos deploys tanto na Vercel quanto na Netlify.
+#### Opção B: Publicando na Vercel
+
+Se preferir manter tudo na Vercel, siga estes passos:
+
+1.  **Importe o mesmo repositório novamente** na Vercel, mas para um novo projeto.
+2.  **Configure o Projeto:**
+    -   Nos "General Settings" do projeto, defina o **"Root Directory"** como `frontend`.
+    -   A Vercel deve detectar automaticamente que é um projeto Vite e usar o comando de build correto (`vite build`). O arquivo `frontend/vercel.json` garante o roteamento correto da SPA.
+3.  **Configure as Variáveis de Ambiente:**
+    -   Assim como na Netlify, adicione as variáveis `VITE_API_BASE_URL` e `VITE_APP_LOGO_URL`.
+4.  **Faça o Deploy**.
+
+---
+
+### Nota Importante sobre CORS e Múltiplos Ambientes
+
+É muito comum ter erros de CORS porque a URL do frontend que tenta acessar o backend não está na lista de permissões. Para resolver isso, a variável `CORS_ORIGIN` no seu backend na Vercel pode aceitar **múltiplas URLs, separadas por vírgula e sem espaços**.
+
+**Exemplo de configuração da variável `CORS_ORIGIN` na Vercel:**
+
+`http://localhost:5173,https://seu-app.netlify.app,https://seu-app-preview-123.netlify.app`
+
+Isso permite que seu backend seja acessado:
+1.  Pelo seu ambiente de desenvolvimento local.
+2.  Pela sua URL de produção final na Netlify/Vercel.
+3.  Pelas URLs de "Preview" que a Netlify/Vercel geram a cada novo Pull Request.

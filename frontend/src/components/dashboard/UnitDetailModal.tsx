@@ -1,6 +1,6 @@
 import React from 'react';
-import Modal from '../shared/Modal';
-import type { UnitDetailData } from '../../types';
+import Modal from '@/components/shared/Modal';
+import type { UnitDetailData } from '@/types';
 import { CurrencyDollarIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface UnitDetailModalProps {

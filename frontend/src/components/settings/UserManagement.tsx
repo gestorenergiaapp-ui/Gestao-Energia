@@ -1,8 +1,8 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
-import ContentCard from '../shared/ContentCard';
-import { api } from '../../services/api';
-import type { User, Unit } from '../../types';
-import { AuthContext } from '../../contexts/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import ContentCard from '@/components/shared/ContentCard';
+import { api } from '@/services/api';
+import type { User, Unit } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 import UserUnitsModal from './UserUnitsModal';
 import { 
     TrashIcon,
@@ -14,7 +14,7 @@ import {
 import toast from 'react-hot-toast';
 
 const UserManagement: React.FC = () => {
-    const { user: currentUser } = useContext(AuthContext);
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [allUnits, setAllUnits] = useState<Unit[]>([]);
     const [loading, setLoading] = useState(true);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Modal from '../shared/Modal';
-import { api } from '../../services/api';
-import type { User, Unit } from '../../types';
+import Modal from '@/components/shared/Modal';
+import { api } from '@/services/api';
+import type { User, Unit } from '@/types';
 import toast from 'react-hot-toast';
 
 interface UserUnitsModalProps {

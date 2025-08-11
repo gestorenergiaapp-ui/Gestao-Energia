@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Modal from '../shared/Modal';
-import type { Contract, ContractFormData } from '../../types';
-import { api } from '../../services/api';
+import Modal from '@/components/shared/Modal';
+import type { Contract, ContractFormData } from '@/types';
+import { api } from '@/services/api';
 import toast from 'react-hot-toast';
-import { useForm } from '../../hooks/useForm';
+import { useForm } from '@/hooks/useForm';
 
 interface ContractFormModalProps {
   isOpen: boolean;

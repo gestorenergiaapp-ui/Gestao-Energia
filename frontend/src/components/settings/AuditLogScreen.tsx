@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
-import type { AuditLog, PaginatedAuditLogs } from '../../types';
-import ContentCard from '../shared/ContentCard';
+import { api } from '@/services/api';
+import type { AuditLog, PaginatedAuditLogs } from '@/types';
+import ContentCard from '@/components/shared/ContentCard';
 
 const getActionBadge = (action: string) => {
     const baseClass = 'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full';

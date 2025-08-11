@@ -12,14 +12,20 @@ import toast, { Toaster } from 'react-hot-toast';
 
 type Page = 'dashboard' | 'settings';
 type AuthView = 'login' | 'register';
+type BackendStatus = 'loading' | 'ok' | 'error';
 
 const SESSION_DURATION = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); // For session check
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [authView, setAuthView] = useState<AuthView>('login');
+  
+  // New state for backend health check
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>('loading');
+  const [apiUrl, setApiUrl] = useState<string>('');
+
 
   const logout = useCallback(() => {
     api.logout();
@@ -29,7 +35,21 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // This effect runs only once to check backend connectivity
+    const verifyBackendConnection = async () => {
+        const { ok, url } = await api.checkBackendStatus();
+        setApiUrl(url);
+        setBackendStatus(ok ? 'ok' : 'error');
+    };
+    verifyBackendConnection();
+  }, []);
+
+  useEffect(() => {
+    // This effect runs only after backend is confirmed to be reachable
+    if (backendStatus !== 'ok') return;
+
     const checkSession = async () => {
+      setLoading(true);
       try {
         const loggedInUser = await api.checkSession();
         if (loggedInUser) {
@@ -43,7 +63,7 @@ const App: React.FC = () => {
       }
     };
     checkSession();
-  }, [logout]);
+  }, [logout, backendStatus]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -89,16 +109,19 @@ const App: React.FC = () => {
     updateUser,
   }), [user, login, logout, updateUser]);
 
+  // --- RENDER LOGIC ---
+
+  // 1. Initial check for missing VITE_API_BASE_URL (most critical build-time error)
   if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-red-900 text-white p-8">
         <div className="text-center bg-red-800 p-6 rounded-lg shadow-lg border border-red-600 max-w-2xl">
-          <h1 className="text-3xl font-bold text-yellow-300 mb-4">Erro de Configuração</h1>
+          <h1 className="text-3xl font-bold text-yellow-300 mb-4">Erro Crítico de Configuração</h1>
           <p className="text-lg">
-            A variável de ambiente <code className="bg-red-700 px-2 py-1 rounded font-mono">VITE_API_BASE_URL</code> não está definida.
+            A variável de ambiente <code className="bg-red-700 px-2 py-1 rounded font-mono">VITE_API_BASE_URL</code> não foi definida durante o build.
           </p>
           <p className="mt-4 text-red-200">
-            Para que a aplicação funcione em produção, você deve configurar esta variável no seu serviço de hospedagem (ex: Netlify, Vercel) com a URL completa da sua API backend.
+            Para que a aplicação funcione, você deve configurar esta variável no seu serviço de hospedagem (ex: Netlify, Vercel) com a URL completa da sua API backend.
           </p>
            <p className="mt-2 text-xs text-red-300">
             Exemplo: <code className="bg-red-700 px-2 py-1 rounded font-mono">https://seu-backend.vercel.app/api</code>
@@ -108,14 +131,54 @@ const App: React.FC = () => {
     );
   }
 
-  if (loading) {
+  // 2. Health check loading state
+  if (backendStatus === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-white text-xl">Carregando...</div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+        <div className="text-white text-xl">Verificando conexão com o servidor...</div>
       </div>
     );
   }
 
+  // 3. Health check error state
+  if (backendStatus === 'error') {
+     return (
+      <div className="flex items-center justify-center min-h-screen bg-red-900 text-white p-8">
+        <div className="text-center bg-red-800 p-6 rounded-lg shadow-lg border border-red-600 max-w-3xl">
+          <h1 className="text-3xl font-bold text-yellow-300 mb-4">Falha de Conexão com o Backend</h1>
+          <p className="text-lg mb-4">
+            O frontend não conseguiu se comunicar com o servidor através da rota de verificação.
+          </p>
+          <div className="bg-gray-900 p-3 rounded-md mb-4">
+             <p className="text-sm text-gray-400">URL de verificação de saúde:</p>
+             <code className="text-yellow-300 font-mono break-all">{apiUrl || 'Não definida'}</code>
+          </div>
+          <div className="text-left text-red-200">
+            <p className="font-bold mb-2">Por favor, verifique os seguintes pontos:</p>
+            <ul className="list-disc list-inside space-y-2 text-sm">
+              <li>O deploy do backend na **Vercel** foi concluído com sucesso e o servidor está no ar?</li>
+              <li>A variável <code className="bg-red-700 px-1 rounded font-mono">VITE_API_BASE_URL</code> está correta no painel do **Frontend** (Netlify/Vercel)? (Deve incluir `/api` no final)</li>
+              <li>A variável <code className="bg-red-700 px-1 rounded font-mono">CORS_ORIGIN</code> no painel do **Backend** (Vercel) contém a URL exata do frontend? (Ex: `https://app.netlify.app`)</li>
+              <li>Se estiver usando **Preview Deploys**, as URLs temporárias (ex: `*-ui.netlify.app`) também foram adicionadas à variável `CORS_ORIGIN` no backend?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // 4. Session loading state (after backend is confirmed OK)
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+        <div className="text-white text-xl">Carregando sessão...</div>
+      </div>
+    );
+  }
+
+  // 5. Main app render (logged in or login screen)
   return (
     <AuthContext.Provider value={authContextValue}>
       <Toaster

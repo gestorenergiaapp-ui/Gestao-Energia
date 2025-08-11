@@ -1,22 +1,22 @@
-import React, { useState, useMemo, useCallback, useContext } from 'react';
-import { api } from '../../services/api';
-import type { Unit, Competence, BarChartData, ChartData, Expense, Estimate, UnitDetailData, Contract, GroupedExpense } from '../../types';
-import { MarketType, ExpenseType } from '../../types';
+import React, { useState, useMemo, useCallback } from 'react';
+import { api } from '@/services/api';
+import type { Unit, Competence, BarChartData, ChartData, Expense, Estimate, UnitDetailData, Contract, GroupedExpense } from '@/types';
+import { MarketType, ExpenseType } from '@/types';
 import KPI from './KPI';
-import ChartCard from '../shared/ChartCard';
-import ExpensesBarChart from '../charts/ExpensesBarChart';
-import ExpensesPieChart from '../charts/ExpensesPieChart';
-import HorizontalRankChart from '../charts/HorizontalRankChart';
-import Modal from '../shared/Modal';
+import ChartCard from '@/components/shared/ChartCard';
+import ExpensesBarChart from '@/components/charts/ExpensesBarChart';
+import ExpensesPieChart from '@/components/charts/ExpensesPieChart';
+import HorizontalRankChart from '@/components/charts/HorizontalRankChart';
+import Modal from '@/components/shared/Modal';
 import ExpenseForm from './ExpenseForm';
 import ExpensesTable from './ExpensesTable';
-import ContentCard from '../shared/ContentCard';
+import ContentCard from '@/components/shared/ContentCard';
 import UnitDetailModal from './UnitDetailModal';
 import MonthlyClosingModal from './MonthlyClosingModal';
 import BreakdownModal from './BreakdownModal';
-import { AuthContext } from '../../contexts/AuthContext';
-import { useDashboardData } from '../../hooks/useDashboardData';
-import { useDashboardModals } from '../../hooks/useDashboardModals';
+import { useAuth } from '@/hooks/useAuth';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { useDashboardModals } from '@/hooks/useDashboardModals';
 import { 
     PlusIcon, 
     ArchiveBoxIcon, 
@@ -45,7 +45,7 @@ const MarketTypeButton: React.FC<{ active: boolean; onClick: () => void; childre
 const ITEMS_PER_PAGE = 5;
 
 const Dashboard: React.FC = () => {
-    const { user } = useContext(AuthContext);
+    const { user } = useAuth();
     
     // --- Filters State ---
     const [selectedContract, setSelectedContract] = useState<string>('');

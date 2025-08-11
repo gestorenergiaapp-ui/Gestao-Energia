@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '../services/api';
-import type { Unit, Competence, BarChartData, ChartData, Expense, Estimate, Contract } from '../types';
+import { api } from '@/services/api';
+import type { Unit, Competence, BarChartData, ChartData, Expense, Estimate, Contract } from '@/types';
 import toast from 'react-hot-toast';
 
 export const useDashboardData = (filters: any, selectedCompetence: string) => {

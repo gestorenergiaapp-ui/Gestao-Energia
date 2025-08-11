@@ -1,6 +1,7 @@
 
 
 
+
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors =require('cors');
@@ -11,15 +12,24 @@ require('dotenv').config();
 const app = express();
 
 // --- Robust CORS Configuration ---
-const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) : [];
+
+// For local development, always allow the default Vite port to improve DX
+if (process.env.NODE_ENV !== 'production') {
+    const viteDevOrigin = 'http://localhost:5173';
+    if (!allowedOrigins.includes(viteDevOrigin)) {
+        allowedOrigins.push(viteDevOrigin);
+        console.log(`[CORS] Development mode: Added '${viteDevOrigin}' to allowed origins.`);
+    }
+}
 
 const corsOptions = {
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl requests) or from whitelisted origins
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.error(`CORS Blocked: The origin '${origin}' is not in the allowed list defined in CORS_ORIGIN.`);
+            console.error(`CORS Blocked: The origin '${origin}' is not in the allowed list. Please check your CORS_ORIGIN environment variable.`);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -197,6 +207,13 @@ app.get('/', (req, res) => {
 // --- API Routes ---
 const api = express.Router();
 app.use('/api', api);
+
+// --- Health Check Route ---
+// This route is used by the frontend to verify connectivity.
+// It must be defined before other routes to ensure it's always available.
+api.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
 
 // --- Auth Routes ---
 api.post('/auth/login', async (req, res) => {

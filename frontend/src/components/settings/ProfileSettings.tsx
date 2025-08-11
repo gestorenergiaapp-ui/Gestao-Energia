@@ -1,16 +1,16 @@
-import React, { useState, useContext, useMemo } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
-import { api } from '../../services/api';
-import ContentCard from '../shared/ContentCard';
+import React, { useState, useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/services/api';
+import ContentCard from '@/components/shared/ContentCard';
 import toast from 'react-hot-toast';
-import { useForm } from '../../hooks/useForm';
-import type { UserUpdateData } from '../../types';
+import { useForm } from '@/hooks/useForm';
+import type { UserUpdateData } from '@/types';
 
 const commonInputClass = "mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2";
 const commonLabelClass = "block text-sm font-medium text-gray-300";
 
 const ProfileSettings: React.FC = () => {
-  const { user, updateUser } = useContext(AuthContext);
+  const { user, updateUser } = useAuth();
 
   const initialFormData = useMemo(() => ({
     name: user?.name || '',

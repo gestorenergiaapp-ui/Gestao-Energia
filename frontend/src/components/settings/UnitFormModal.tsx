@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Modal from '../shared/Modal';
-import type { Unit, UnitFormData, Contract } from '../../types';
-import { MarketType } from '../../types';
-import { api } from '../../services/api';
-import { MARKET_TYPE_OPTIONS } from '../../constants';
+import Modal from '@/components/shared/Modal';
+import type { Unit, UnitFormData, Contract } from '@/types';
+import { MarketType } from '@/types';
+import { api } from '@/services/api';
+import { MARKET_TYPE_OPTIONS } from '@/constants';
 import toast from 'react-hot-toast';
-import { useForm } from '../../hooks/useForm';
+import { useForm } from '@/hooks/useForm';
 
 interface UnitFormModalProps {
   isOpen: boolean;

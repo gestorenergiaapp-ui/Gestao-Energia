@@ -1,6 +1,15 @@
 import type { User, Unit, Competence, Expense, ExpensePostData, Estimate, UnitDetailData, Contract, UnitFormData, UserUpdateData, ContractFormData, CompetenceFormData, PaginatedAuditLogs } from './types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/$/, '');
+let baseUrl = 'http://localhost:4000/api'; // Default for local dev
+if (import.meta.env.PROD && import.meta.env.VITE_API_BASE_URL) {
+    baseUrl = import.meta.env.VITE_API_BASE_URL;
+} else if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
+    console.error("VITE_API_BASE_URL is not set in production environment!");
+    // The App.tsx component will render a user-friendly error message.
+}
+
+const API_BASE_URL = baseUrl.replace(/\/$/, '');
+alert(API_BASE_URL);
 const SESSION_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
 const handleResponse = async (response: Response) => {
@@ -13,9 +22,19 @@ const handleResponse = async (response: Response) => {
     if (response.status === 204) {
         return;
     }
-    const data = await response.json();
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (error) {
+        if (!response.ok) {
+            throw new Error(`Erro de rede ou servidor: ${response.status} ${response.statusText}`);
+        }
+        throw new Error('Falha ao processar a resposta do servidor.');
+    }
+
     if (!response.ok) {
-        throw new Error(data.message || 'Ocorreu um erro na chamada da API.');
+        throw new Error(data.message || `Ocorreu um erro na chamada da API: ${response.status}`);
     }
     return data;
 };
@@ -58,6 +77,20 @@ const authenticatedRequest = async (method: 'POST' | 'PUT' | 'DELETE', endpoint:
 
 // --- API FUNCTIONS ---
 export const api = {
+  // --- Health Check ---
+  checkBackendStatus: async (): Promise<{ ok: boolean, url: string }> => {
+    const healthCheckUrl = `${API_BASE_URL}/health`;
+    if (!API_BASE_URL && import.meta.env.PROD) {
+      return { ok: false, url: 'Não configurada' };
+    }
+    try {
+        const response = await fetch(healthCheckUrl);
+        return { ok: response.ok, url: healthCheckUrl };
+    } catch (error) {
+        return { ok: false, url: healthCheckUrl };
+    }
+  },
+  
   // --- Auth ---
   login: async (email: string, password: string): Promise<User> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {

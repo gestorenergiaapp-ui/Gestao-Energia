@@ -1,12 +1,12 @@
-import React, { useState, useContext } from 'react';
-import type { User } from '../../types';
+import React, { useState } from 'react';
+import type { User } from '@/types';
 import ProfileSettings from './ProfileSettings';
 import UnitManagement from './UnitManagement';
 import ContractManagement from './ContractManagement';
 import CompetenceManagement from './CompetenceManagement';
 import UserManagement from './UserManagement';
 import AuditLogScreen from './AuditLogScreen';
-import { AuthContext } from '../../contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { UserCircleIcon, UsersIcon, BuildingLibraryIcon, DocumentTextIcon, CalendarDaysIcon, CommandLineIcon } from '@heroicons/react/24/outline';
 
 type SettingsTab = 'profile' | 'users' | 'units' | 'contracts' | 'competences' | 'logs';
@@ -28,7 +28,7 @@ const TabButton: React.FC<{ label: string, tab: SettingsTab, activeTab: Settings
 
 
 const SettingsScreen: React.FC = () => {
-    const { user } = useContext(AuthContext);
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
     const renderContent = () => {
