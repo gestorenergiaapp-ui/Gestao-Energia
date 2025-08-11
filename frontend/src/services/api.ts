@@ -1,6 +1,6 @@
 import type { User, Unit, Competence, Expense, ExpensePostData, Estimate, UnitDetailData, Contract, UnitFormData, UserUpdateData, ContractFormData, CompetenceFormData, PaginatedAuditLogs } from './types';
 
-let baseUrl = 'http://localhost:4000'; // Default for local dev
+let baseUrl = 'http://localhost:4000/api'; // Default for local dev
 if (import.meta.env.PROD && import.meta.env.VITE_API_BASE_URL) {
     baseUrl = import.meta.env.VITE_API_BASE_URL;
 } else if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {

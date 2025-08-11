@@ -1,7 +1,3 @@
-
-
-
-
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors =require('cors');
@@ -48,6 +44,18 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// --- Root health check for basic server availability ---
+// This helps confirm the server is running, separate from API routing.
+app.get('/', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ 
+        message: 'Gestor de Energia Backend is alive!', 
+        status: 'ok',
+        documentation: 'API routes are available under the /api prefix. Try /api/health for a detailed health check.'
+    });
+});
+
 
 const PORT = process.env.PORT || 4000;
 const {
@@ -199,19 +207,15 @@ const getUserPermissions = async (userId) => {
 };
 
 
-// --- Test route to check if server is running ---
-app.get('/', (req, res) => {
-    res.json({ message: 'Backend server is running!' });
-});
-
 // --- API Routes ---
 const api = express.Router();
-app.use(api);
+app.use('/api', api);
 
 // --- Health Check Route ---
 // This route is used by the frontend to verify connectivity.
 // It must be defined before other routes to ensure it's always available.
 api.get('/health', (req, res) => {
+    console.log("[Health Check] The /api/health endpoint was hit successfully. The server and API routing are working.");
     res.status(200).json({ status: 'ok', timestamp: new Date() });
 });
 
@@ -1420,4 +1424,21 @@ function buildHtmlReport(competenceLabel, kpis, analysisData) {
         </body>
         </html>
     `;
-}
+}--- START OF FILE netlify.toml ---
+
+# Settings for deploying the frontend on Netlify
+[build]
+  # This command is run from the root, but we specify the workspace.
+  # Netlify will automatically run `npm install` first.
+  command = "npm run build -w frontend"
+  # Directory (relative to the root) that contains the deploy-ready assets
+  publish = "frontend/dist"
+  # Base directory to change to before starting a build.
+  base = "frontend"
+
+# Redirect rule for Single-Page Applications (SPA) like React.
+# This ensures that all paths are handled by index.html for client-side routing.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

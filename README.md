@@ -202,8 +202,8 @@ A Vercel é a escolha recomendada para hospedar o backend Node.js. O projeto já
 3.  **Configure as Variáveis de Ambiente:**
     -   Vá para as configurações do seu projeto na Vercel ("Settings" -> "Environment Variables").
     -   Adicione as mesmas variáveis que você tem no seu arquivo `backend/.env`.
-    -   **PONTO CRÍTICO - `CORS_ORIGIN`:**
-        -   Nesta variável, você deve colocar a **URL pública do seu frontend** (ex: `https://seu-app-frontend.netlify.app`).
+    -   <span style="color: #FBBF24; background-color: #372800; padding: 2px 6px; border-radius: 4px;">⚠️ **PONTO CRÍTICO - `CORS_ORIGIN`** ⚠️</span>
+        -   Nesta variável, você **DEVE** colocar a **URL pública do seu frontend** (ex: `https://seu-app-frontend.netlify.app`).
         -   Veja a nota abaixo sobre como configurar múltiplos ambientes (produção, previews, local).
 4.  **Faça o Deploy:** Clique em "Deploy". Após alguns instantes, a Vercel fornecerá uma URL pública para a sua API (ex: `https://seu-projeto-backend.vercel.app`). **Guarde esta URL.**
 
@@ -225,7 +225,7 @@ A Netlify é excelente para hospedar sites estáticos como o nosso frontend Reac
 3.  **Configure as Variáveis de Ambiente:**
     -   Antes de fazer o deploy, vá para "Site configuration" -> "Build & deploy" -> "Environment".
     -   Adicione as seguintes variáveis:
-        -   `VITE_API_BASE_URL`: Cole a URL da sua API na Vercel (que você guardou no passo anterior), **incluindo `/api` no final**. Ex: `https://seu-projeto-backend.vercel.app/api`.
+        -   <span style="color: #FBBF24; background-color: #372800; padding: 2px 6px; border-radius: 4px;">⚠️ **PONTO CRÍTICO - `VITE_API_BASE_URL`** ⚠️</span> Cole a URL da sua API na Vercel (que você guardou no passo anterior). **DEVE incluir `/api` no final**. Ex: `https://seu-projeto-backend.vercel.app/api`.
         -   `VITE_APP_LOGO_URL`: A URL pública do seu logo.
 4.  **Faça o Deploy:** Clique em "Deploy site".
 
